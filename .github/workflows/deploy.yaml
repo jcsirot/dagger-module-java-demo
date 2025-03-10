@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      deploy-tag:
+        description: Enter the tag to deploy
+        required: true
 
 jobs:
   build:
@@ -34,8 +39,13 @@ jobs:
 
       - name: Extract tag version
         id: extract_tag
-        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.deploy-tag }}" ]; then
+            echo "TAG_VERSION=${{ github.event.inputs.deploy-tag }}" >> $GITHUB_ENV
+          else
+            echo "TAG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
       - name: Build and push Docker image to ECR
         env:
           IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/parisjug-dagger-demo/translate-api:${{ env.TAG_VERSION }}
