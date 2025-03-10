@@ -42,6 +42,3 @@ jobs:
               -DreleaseVersion=${{ github.event.inputs.release-version }} \
               -DdevelopmentVersion=${{ github.event.inputs.development-version }} \
               -DpushChanges=true
-
-      - name: Push release tag
-        run: git push --tags
