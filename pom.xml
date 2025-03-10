@@ -18,6 +18,10 @@
         <surefire-plugin.version>3.5.2</surefire-plugin.version>
     </properties>
 
+    <scm>
+        <developerConnection>scm:git:git@github.com:jcsirot/dagger-module-java-demo.git</developerConnection>
+    </scm>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -149,6 +153,21 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.18.0</version>
+            </plugin>
+            <plugin>
+                <groupId>com.smartling.cc4j</groupId>
+                <artifactId>conventional-commits-maven-plugin</artifactId>
+                <version>0.2.0</version>
+            </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-release-plugin</artifactId>
+            <version>3.1.1</version>
+          </plugin>
         </plugins>
     </build>
 
