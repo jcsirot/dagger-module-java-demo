@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.chelonix.aws</groupId>
     <artifactId>translate-api</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.1.3</version>
 
     <properties>
         <aws.sdk2.version>2.20.117</aws.sdk2.version>
@@ -21,7 +21,7 @@
     <scm>
         <connection>scm:git:git@github.com:jcsirot/dagger-module-java-demo.git</connection>
         <developerConnection>scm:git:git@github.com:jcsirot/dagger-module-java-demo.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>v1.1.3</tag>
   </scm>
 
     <dependencyManagement>
