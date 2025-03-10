@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: translate-api
+  namespace: parisjug-dagger
+  labels:
+    app: translate-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: translate-api
+  template:
+    metadata:
+      labels:
+        app: translate-api
+    spec:
+      serviceAccountName: translate-api-sa
+      containers:
+        - name: translate-api
+          image: ${IMAGE_TAG}
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: translate-api-service
+spec:
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  selector:
+    app: translate-api
