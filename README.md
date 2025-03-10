@@ -53,18 +53,10 @@ You can then execute your native executable with: `./target/translate-api-1.0.0-
 
 If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
 
-## Related Guides
+## Docker image
 
-- AWS Lambda ([guide](https://quarkus.io/guides/aws-lambda)): Write AWS Lambda functions
-- AWS Lambda HTTP ([guide](https://quarkus.io/guides/aws-lambda-http)): Allow applications written for a servlet container to run in AWS Lambda
+You can build a docker image for the application
 
-## Provided Code
-
-### Amazon Lambda Integration example
-
-This example contains a Quarkus Greeting Lambda ready for Amazon.
-
-[Related guide section...](https://quarkus.io/guides/amazon-lambda)
-
-> :warning: **INCOMPATIBLE WITH DEV MODE**: Amazon Lambda Binding is not compatible with dev mode yet!
-
+```shell
+IMAGE_TAG=translate-api:$(date +%s) docker build -f src/main/docker/Dockerfile.jvm --platform linux/amd64 -t ${IMAGE_TAG} .
+```
