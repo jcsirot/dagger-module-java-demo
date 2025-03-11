@@ -107,19 +107,17 @@ public class Ci extends AbstractModule {
   public String deploy(@DefaultPath(".") Directory source, String image, Secret awsAccessKeyId, Secret awsSecretAccessKey)
       throws ExecutionException, DaggerQueryException, InterruptedException {
     Container deployerCtr = dag.container().from("alpine")
-        .withExec(List.of("apk", "add", "envsubst", "aws-cli", "curl"))
+        .withExec(List.of("apk", "add", "aws-cli", "curl"))
         .withExec(List.of("curl", "-L", "-o", "kubectl", "https://dl.k8s.io/release/v1.31.0/bin/linux/arm64/kubectl"))
         .withExec(List.of("chmod", "+x", "kubectl"))
         .withExec(List.of("mv", "kubectl", "/usr/local/bin/"));
+    String appYaml = source.file("src/main/kube/app.yaml").contents().replace("${IMAGE_TAG}", image);
     return dag.awsCli(new AwsCliArguments().withContainer(deployerCtr))
         .withRegion("eu-west-1")
         .withStaticCredentials(awsAccessKeyId, awsSecretAccessKey)
         .exec(List.of("eks", "update-kubeconfig", "--name", "confused-classical-sheepdog"))
         .withEnvVariable("IMAGE_TAG", image)
-        .withDirectory("/src", source)
-        .withExec(List.of("envsubst"), new WithExecArguments()
-            .withStdin(source.file("src/main/kube/app.yaml").contents())
-            .withRedirectStdout("/tmp/app.yaml"))
+        .withNewFile("/tmp/app.yaml", appYaml)
         .withExec(List.of("kubectl", "apply", "-f", "/tmp/app.yaml"))
         .stdout();
   }
