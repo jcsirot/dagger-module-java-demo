@@ -1,0 +1,35 @@
+name: Publish image and deploy the application to EKS
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build, publish, deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build, publish image
+        id: publish
+        uses: dagger/dagger-for-github@v7
+        with:
+          version: "latest"
+          verb: call
+          args: |
+            publish \
+            --aws-access-key-id=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
+            --aws-secret-access-key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Build, publish image
+        uses: dagger/dagger-for-github@v7
+        with:
+          version: "latest"
+          verb: call
+          args: |
+            deploy \
+            --image= {{ steps.publish.outputs.output }} \
+            --aws-access-key-id=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
+            --aws-secret-access-key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
