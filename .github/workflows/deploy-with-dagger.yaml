@@ -16,10 +16,7 @@ jobs:
         with:
           version: "latest"
           verb: call
-          args: |
-            publish \
-            --aws-access-key-id=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
-            --aws-secret-access-key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          args: publish --aws-access-key-id=${{ secrets.AWS_ACCESS_KEY_ID }} --aws-secret-access-key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Build, publish image
@@ -27,9 +24,5 @@ jobs:
         with:
           version: "latest"
           verb: call
-          args: |
-            deploy \
-            --image= {{ steps.publish.outputs.output }} \
-            --aws-access-key-id=${{ secrets.AWS_ACCESS_KEY_ID }} \ 
-            --aws-secret-access-key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          args: deploy --image=${{ steps.publish.outputs.output }} --aws-access-key-id=${{ secrets.AWS_ACCESS_KEY_ID }} --aws-secret-access-key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
