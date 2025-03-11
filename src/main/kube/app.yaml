@@ -19,6 +19,7 @@ spec:
       containers:
         - name: translate-api
           image: ${IMAGE_TAG}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
 ---
