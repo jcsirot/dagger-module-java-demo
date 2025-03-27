@@ -1,6 +1,7 @@
 package io.dagger.modules.ci;
 
 import static io.dagger.client.Dagger.dag;
+import static io.dagger.modules.ci.Utils.*;
 
 import io.dagger.client.AwsCli;
 import io.dagger.client.CacheVolume;
@@ -86,9 +87,7 @@ public class Ci {
   public String publish(@DefaultPath(".") Directory source, Secret awsAccessKeyId,
       Secret awsSecretAccessKey, @Default("eu-west-1") String region)
       throws ExecutionException, DaggerQueryException, InterruptedException {
-    AwsCli awsCli = dag().awsCli()
-        .withRegion(region)
-        .withStaticCredentials(awsAccessKeyId, awsSecretAccessKey);
+    AwsCli awsCli = aws(region, awsAccessKeyId, awsSecretAccessKey);
     Secret token = awsCli.ecr().getLoginPassword();
     String accountId = awsCli.sts().getCallerIdentity().account();
     String address = "%s.dkr.ecr.%s.amazonaws.com/parisjug-dagger-demo/translate-api:%s"
@@ -118,8 +117,7 @@ public class Ci {
         .withExec(List.of("apk", "add", "aws-cli", "kubectl"));
     String appYaml = source.file("src/main/kube/app.yaml").contents()
         .replace("${IMAGE_TAG}", image);
-    return dag().awsCli(new AwsCliArguments().withContainer(deployerCtr))
-        .withRegion(region)
+    return aws(deployerCtr, region, awsAccessKeyId, awsSecretAccessKey)
         .withStaticCredentials(awsAccessKeyId, awsSecretAccessKey)
         .exec(List.of("eks", "update-kubeconfig", "--name", clusterName))
         .withEnvVariable("IMAGE_TAG", image)

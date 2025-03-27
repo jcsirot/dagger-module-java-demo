@@ -1,8 +1,20 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devoxxfr-dagger
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: translate-api-sa
+  namespace: devoxxfr-dagger
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: translate-api
-  namespace: parisjug-dagger
+  namespace: devoxxfr-dagger
   labels:
     app: translate-api
 spec:
