@@ -52,7 +52,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/parisjug-dagger-demo/translate-api:${{ env.TAG_VERSION }}
         run: |
-          docker build -f src/main/docker/Dockerfile.jvm --platform linux/amd64 -t $IMAGE_TAG .
+          docker build -f src/main/docker/Dockerfile.jvm --platform linux/amd64,linux/arm64 -t $IMAGE_TAG .
           docker push $IMAGE_TAG
 
       - name: update kube config

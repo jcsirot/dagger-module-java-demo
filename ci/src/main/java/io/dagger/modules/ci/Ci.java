@@ -12,7 +12,6 @@ import io.dagger.client.Directory;
 import io.dagger.client.Directory.DockerBuildArguments;
 import io.dagger.client.Platform;
 import io.dagger.client.Secret;
-import io.dagger.client.engineconn.Connection;
 import io.dagger.module.annotation.Default;
 import io.dagger.module.annotation.DefaultPath;
 import io.dagger.module.annotation.Function;
@@ -26,7 +25,7 @@ import org.slf4j.LoggerFactory;
 @Object
 public class Ci {
 
-  static final Logger LOG = LoggerFactory.getLogger(Connection.class);
+  static final Logger LOG = LoggerFactory.getLogger(Ci.class);
 
   private static final List<String> ARCHS = List.of("amd64", "arm64");
 
