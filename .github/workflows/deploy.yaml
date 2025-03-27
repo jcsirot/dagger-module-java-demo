@@ -57,7 +57,7 @@ jobs:
 
       - name: update kube config
         run: |
-          aws eks --region ${{ secrets.AWS_REGION }} update-kubeconfig --name confused-classical-sheepdog
+          aws eks --region ${{ secrets.AWS_REGION }} update-kubeconfig --name ${{ vars.CLUSTER_NAME }}
 
       - name: deploy application to EKS
         env:
