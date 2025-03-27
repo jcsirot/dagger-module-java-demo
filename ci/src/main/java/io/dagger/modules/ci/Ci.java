@@ -5,13 +5,11 @@ import io.dagger.client.CacheVolume;
 import io.dagger.client.Client.AwsCliArguments;
 import io.dagger.client.Container;
 import io.dagger.client.Container.PublishArguments;
-import io.dagger.client.Container.WithExecArguments;
 import io.dagger.client.DaggerQueryException;
 import io.dagger.client.Directory;
 import io.dagger.client.Directory.DockerBuildArguments;
 import io.dagger.client.Platform;
 import io.dagger.client.Secret;
-import io.dagger.client.Service;
 import io.dagger.module.AbstractModule;
 import io.dagger.module.annotation.Default;
 import io.dagger.module.annotation.DefaultPath;
@@ -24,12 +22,9 @@ import java.util.concurrent.ExecutionException;
 @Object
 public class Ci extends AbstractModule {
 
-  /**
-   * Builds the application and optionally run the tests
-   *
-   * @param source    the source directory
-   * @param skipTests whether to skip the tests
-   */
+  private static final List<String> ARCHS = List.of("amd64", "arm64");
+
+  /** Build and test the application */
   @Function
   public Container build(@DefaultPath(".") Directory source, @Default("false") boolean skipTests)
       throws ExecutionException, DaggerQueryException, InterruptedException {
@@ -49,8 +44,11 @@ public class Ci extends AbstractModule {
             .withDockerfile("src/main/docker/Dockerfile.jvm"));
   }
 
-  private List<Container> buildImageMultiarch(Directory source) {
-    List<String> variants = List.of("amd64", "arm64");
+  /**
+   * Build a list of Docker images for multiple architectures
+   * @param source the source directory
+   */
+  private List<Container> buildImageMultiarch(Directory source, List<String> variants) {
     List<Container> images = variants.stream().map(platform -> {
       try {
         return buildImage(source, platform);
@@ -71,48 +69,53 @@ public class Ci extends AbstractModule {
   }
 
   /**
-   * Runs the application as a service
-   */
-  @Function
-  public Service run(@DefaultPath(".") Directory source, @Default("8080") int port,
-      Secret awsAccessKeyId, Secret awsSecretAccessKey)
-      throws ExecutionException, DaggerQueryException, InterruptedException {
-    Container ctr = buildImage(source)
-        .withSecretVariable("AWS_ACCESS_KEY_ID", awsAccessKeyId)
-        .withSecretVariable("AWS_SECRET_ACCESS_KEY", awsSecretAccessKey);
-    return ctr.asService();
-  }
-
-  /**
    * Publishes the Docker image to ECR
+   *
+   * @param source             the source directory
+   * @param awsAccessKeyId     the AWS access key ID
+   * @param awsSecretAccessKey the AWS secret access key
+   * @param region             the AWS region
    */
   @Function
-  public String publish(@DefaultPath(".") Directory source, Secret awsAccessKeyId, Secret awsSecretAccessKey)
+  public String publish(@DefaultPath(".") Directory source, Secret awsAccessKeyId,
+      Secret awsSecretAccessKey, @Default("eu-west-1") String region)
       throws ExecutionException, DaggerQueryException, InterruptedException {
-    AwsCli awsCli = dag.awsCli().withRegion("eu-west-1").withStaticCredentials(awsAccessKeyId, awsSecretAccessKey);
+    AwsCli awsCli = dag.awsCli()
+        .withRegion(region)
+        .withStaticCredentials(awsAccessKeyId, awsSecretAccessKey);
     Secret token = awsCli.ecr().getLoginPassword();
     String accountId = awsCli.sts().getCallerIdentity().account();
-    String address = "%s.dkr.ecr.eu-west-1.amazonaws.com/parisjug-dagger-demo/translate-api:%s"
-        .formatted(accountId, dag.gitInfo(source).commitHash().substring(0, 8));
+    String address = "%s.dkr.ecr.%s.amazonaws.com/parisjug-dagger-demo/translate-api:%s"
+        .formatted(accountId, region, dag.gitInfo(source).commitHash().substring(0, 8));
     dag.container()
         .withRegistryAuth(address, "AWS", token)
-        .publish(address, new PublishArguments().withPlatformVariants(buildImageMultiarch(source)));
+        .publish(address, new PublishArguments()
+            .withPlatformVariants(buildImageMultiarch(source, ARCHS)));
     return address;
   }
 
   /**
    * Deploys the application to EKS
+   *
+   * @param source the source directory
+   * @param image the image address to deploy
+   * @param clusterName the name of the EKS cluster
+   * @param awsAccessKeyId the AWS access key ID
+   * @param awsSecretAccessKey the AWS secret access key
+   * @param region the AWS region
    */
   @Function
-  public String deploy(@DefaultPath(".") Directory source, String image, Secret awsAccessKeyId, Secret awsSecretAccessKey)
+  public String deploy(@DefaultPath(".") Directory source, String image, String clusterName,
+      Secret awsAccessKeyId, Secret awsSecretAccessKey, @Default("eu-west-1") String region)
       throws ExecutionException, DaggerQueryException, InterruptedException {
     Container deployerCtr = dag.container().from("alpine")
         .withExec(List.of("apk", "add", "aws-cli", "kubectl"));
-    String appYaml = source.file("src/main/kube/app.yaml").contents().replace("${IMAGE_TAG}", image);
+    String appYaml = source.file("src/main/kube/app.yaml").contents()
+        .replace("${IMAGE_TAG}", image);
     return dag.awsCli(new AwsCliArguments().withContainer(deployerCtr))
-        .withRegion("eu-west-1")
+        .withRegion(region)
         .withStaticCredentials(awsAccessKeyId, awsSecretAccessKey)
-        .exec(List.of("eks", "update-kubeconfig", "--name", "confused-classical-sheepdog"))
+        .exec(List.of("eks", "update-kubeconfig", "--name", clusterName))
         .withEnvVariable("IMAGE_TAG", image)
         .withNewFile("/tmp/app.yaml", appYaml)
         .withExec(List.of("kubectl", "apply", "-f", "/tmp/app.yaml"))
