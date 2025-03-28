@@ -4,11 +4,14 @@ kind: Namespace
 metadata:
   name: devoxxfr-dagger
 ---
-apiVersion: v1
-kind: ServiceAccount
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
 metadata:
-  name: translate-api-sa
-  namespace: devoxxfr-dagger
+  name: alb
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: eks.amazonaws.com/alb
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,11 +42,33 @@ apiVersion: v1
 kind: Service
 metadata:
   name: translate-api-service
+  namespace: devoxxfr-dagger
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
   selector:
     app: translate-api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: devoxxfr-dagger
+  name: translate-api-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: translate-api-service
+                port:
+                  number: 80

@@ -113,16 +113,25 @@ public class Ci {
   public String deploy(@DefaultPath(".") Directory source, String image, String clusterName,
       Secret awsAccessKeyId, Secret awsSecretAccessKey, @Default("eu-west-1") String region)
       throws ExecutionException, DaggerQueryException, InterruptedException {
-    Container deployerCtr = dag().container().from("alpine")
-        .withExec(List.of("apk", "add", "aws-cli", "kubectl"));
-    String appYaml = source.file("src/main/kube/app.yaml").contents()
-        .replace("${IMAGE_TAG}", image);
-    return aws(deployerCtr, region, awsAccessKeyId, awsSecretAccessKey)
-        .withStaticCredentials(awsAccessKeyId, awsSecretAccessKey)
-        .exec(List.of("eks", "update-kubeconfig", "--name", clusterName))
-        .withEnvVariable("IMAGE_TAG", image)
+    String appYaml = envsubst(source.file("src/main/kube/app.yaml").contents(), "IMAGE_TAG", image);
+    /* String appYaml = source.file("src/main/kube/app.yaml").contents()
+        .replace("${IMAGE_TAG}", image); */
+    return kubectl(clusterName, region, awsAccessKeyId, awsSecretAccessKey)
         .withNewFile("/tmp/app.yaml", appYaml)
         .withExec(List.of("kubectl", "apply", "-f", "/tmp/app.yaml"))
+        .stdout();
+  }
+
+  /**
+   * Returns the ingress address of the application
+   * @return the ingress address
+   */
+  @Function
+  public String getIngress(String clusterName, Secret awsAccessKeyId, Secret awsSecretAccessKey,
+      @Default("eu-west-1") String region)
+      throws ExecutionException, DaggerQueryException, InterruptedException {
+    return kubectl(clusterName, region, awsAccessKeyId, awsSecretAccessKey)
+        .withExec(List.of("kubectl", "-n", "devoxxfr-dagger", "get", "ingress", "-o", "jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'"))
         .stdout();
   }
 
