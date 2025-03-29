@@ -5,7 +5,6 @@ import static io.dagger.modules.ci.Utils.*;
 
 import io.dagger.client.AwsCli;
 import io.dagger.client.CacheVolume;
-import io.dagger.client.Client.AwsCliArguments;
 import io.dagger.client.Container;
 import io.dagger.client.Container.PublishArguments;
 import io.dagger.client.DaggerQueryException;
@@ -114,8 +113,6 @@ public class Ci {
       Secret awsAccessKeyId, Secret awsSecretAccessKey, @Default("eu-west-1") String region)
       throws ExecutionException, DaggerQueryException, InterruptedException {
     String appYaml = envsubst(source.file("src/main/kube/app.yaml").contents(), "IMAGE_TAG", image);
-    /* String appYaml = source.file("src/main/kube/app.yaml").contents()
-        .replace("${IMAGE_TAG}", image); */
     return kubectl(clusterName, region, awsAccessKeyId, awsSecretAccessKey)
         .withNewFile("/tmp/app.yaml", appYaml)
         .withExec(List.of("kubectl", "apply", "-f", "/tmp/app.yaml"))
@@ -130,9 +127,10 @@ public class Ci {
   public String getIngress(String clusterName, Secret awsAccessKeyId, Secret awsSecretAccessKey,
       @Default("eu-west-1") String region)
       throws ExecutionException, DaggerQueryException, InterruptedException {
-    return kubectl(clusterName, region, awsAccessKeyId, awsSecretAccessKey)
-        .withExec(List.of("kubectl", "-n", "devoxxfr-dagger", "get", "ingress", "-o", "jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'"))
+    String host = kubectl(clusterName, region, awsAccessKeyId, awsSecretAccessKey)
+        .withExec(List.of("kubectl", "-n", "devoxxfr-dagger", "get", "ingress", "-o", "jsonpath={.items[0].status.loadBalancer.ingress[0].hostname}"))
         .stdout();
+    return "http://%s".formatted(host);
   }
 
   /** Build a ready-to-use development environment */
