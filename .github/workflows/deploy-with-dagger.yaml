@@ -10,17 +10,19 @@ jobs:
   build:
     name: build, publish
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.publish.outputs.output }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build and publish image
         id: publish
-        uses: dagger/dagger-for-github@v7
+        uses: dagger/dagger-for-github@8.0.0
         with:
-          version: "latest"
+          version: "0.16.3"
           verb: call
-          args: publish --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY
+          args: build-and-push-image --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY --repo-name=${{ vars.REPO_NAME }} --account-id=${{ vars.ACCOUNT_ID }} --region=${{ vars.AWS_REGION }}
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
   deploy:
@@ -28,18 +30,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Deploy to K8S
-        uses: dagger/dagger-for-github@v7
+        uses: dagger/dagger-for-github@8.0.0
         with:
-          version: "latest"
+          version: "0.16.3"
           verb: call
-          args: deploy --image=${{ steps.publish.outputs.output }} --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY --cluster-name ${{ vars.CLUSTER_NAME }}
+          args: deploy --image=${{ needs.build.outputs.image }} --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY --cluster-name ${{ vars.CLUSTER_NAME }}
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Get Public URL
-        uses: dagger/dagger-for-github@v7
+        uses: dagger/dagger-for-github@8.0.0
         with:
-          version: "latest"
+          version: "0.16.3"
           verb: call
           args: get-ingress --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY --cluster-name ${{ vars.CLUSTER_NAME }}
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}

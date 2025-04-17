@@ -50,20 +50,20 @@ jobs:
 
       - name: Build and push Docker image
         env:
-          IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/parisjug-dagger-demo/translate-api:${{ env.TAG_VERSION }}
+          IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.REPO_NAME }}:${{ env.TAG_VERSION }}
         run: |
           docker build -f src/main/docker/Dockerfile.jvm --platform linux/amd64,linux/arm64 -t $IMAGE_TAG .
           docker push $IMAGE_TAG
 
       - name: update kube config
         run: |
-          aws eks --region ${{ secrets.AWS_REGION }} update-kubeconfig --name ${{ vars.CLUSTER_NAME }}
+          aws eks --region ${{ vars.AWS_REGION }} update-kubeconfig --name ${{ vars.CLUSTER_NAME }}
 
       - name: deploy application to EKS
         env:
-          IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/parisjug-dagger-demo/translate-api:${{ env.TAG_VERSION }}
+          IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.REPO_NAME }}:${{ env.TAG_VERSION }}
         run: |
           envsubst < src/main/kube/app.yaml | kubectl apply -f -
 
       - name: Logout from Amazon ECR
-        run: docker logout ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        run: docker logout ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
